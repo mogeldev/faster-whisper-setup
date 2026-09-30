@@ -1,0 +1,43 @@
+# Caddyfile site block for faster-whisper-fastapi.
+#
+# Caddy itself is not installed or configured by install.sh. Add this
+# block to your existing Caddyfile, or use this file as-is:
+#
+#   sudo cp Caddyfile /etc/caddy/Caddyfile
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# REPLACE THE DOMAIN. Caddy obtains a Let's Encrypt certificate for it
+# automatically, provided the DNS A/AAAA record points at this host and
+# ports 80 and 443 are reachable.
+
+your.domain.example {
+	# Cap upload size. This matters: transcription runs at roughly
+	# 1-2x realtime and requests are serialised, so one very large
+	# file would block the service for everyone. 25MB is about 1-3h
+	# of compressed speech (Opus/MP3).
+	request_body {
+		max_size 25MB
+	}
+
+	# Authentication happens in the app (X-API-Key, see src/auth.py),
+	# not here. That way it also applies if someone reaches the port
+	# directly, and the key stays in .env instead of this file.
+	#
+	# 127.0.0.1 is correct only when Caddy runs on the SAME host as the
+	# service. If Caddy is on a different machine, install the service
+	# with --bind-host <lan-ip> and put that address here instead, then
+	# firewall the port to this proxy.
+	reverse_proxy 127.0.0.1:8000 {
+		transport http {
+			# Transcription takes minutes on longer audio. Short
+			# timeouts would abort legitimate requests.
+			read_timeout 30m
+			write_timeout 30m
+		}
+	}
+
+	log {
+		output file /var/log/caddy/whisper.log
+	}
+}

@@ -1,0 +1,23 @@
+# Reference unit for a manual install on Debian 13. install.sh generates this file
+# with your actual paths, user and port.
+#
+#   sudo cp faster-whisper.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now faster-whisper
+
+[Unit]
+Description=faster-whisper-fastapi
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/faster-whisper-fastapi
+EnvironmentFile=/opt/faster-whisper-fastapi/.env
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/opt/faster-whisper-fastapi/.venv/bin/python -m uvicorn src.app:app --host 127.0.0.1 --port ${PORT} --workers 1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
